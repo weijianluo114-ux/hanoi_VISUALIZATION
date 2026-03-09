@@ -1,13 +1,13 @@
 import pygame     #游戏包
 import sys  #用于退出系统
 
-from .components import tower_m
-from .components import disk_m
+# 导入自定义组件
+from ..components import tower_m
+from ..components import disk_m
 
 # 参数
 width, height = 1280, 720
 num_disks = 4       #盘子的数量
-
 
 
 #初始化pygam
