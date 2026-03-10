@@ -7,20 +7,25 @@ from ..components import disk_m
 
 class gameplay(object):
     """docstring for gameplay."""
-    def __init__(self, screen, font, num_disks):
+    def __init__(self, screen, font, num_disks, num_towers):
         super(gameplay, self).__init__()
         self.screen_surface = screen
         self.game_font = font
         self.selected_tower = 0      # 初始选中第一根柱子
         self.holding_disk = None     # 手中没有盘子
         self.num_disks = num_disks
+        self.num_towers = num_towers
+        self.width = screen.get_width()
+        self.height = screen.get_height()
         
-        # 柱子类
-        self.towers = [
-            tower_m.Tower(320, 700, 20, 400, 240, 40, self.num_disks),
-            tower_m.Tower(640, 700, 20, 400, 240, 40, self.num_disks),
-            tower_m.Tower(960, 700, 20, 400, 240, 40, self.num_disks)
-        ]
+        
+        # 柱子类(根据柱子的数量添加)
+        self.towers = []
+        for tower_x in range(self.num_towers):
+            x_center = ((tower_x+1)*(self.width))/(self.num_towers+1)
+            tower = tower_m.Tower(x_center, 700, 20, 400, 240, 40, self.num_disks)
+            self.towers.append(tower)
+
 
         # 盘子类
         self.disks = []

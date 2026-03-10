@@ -15,6 +15,7 @@ ABOUT = 4
 # 各种参数
 width, height = 1280, 720
 num_disks = 4       #盘子的数量
+num_towers = 3       #柱子的数量
 
 def main():
     pygame.init()   #初始化pygame
@@ -28,7 +29,7 @@ def main():
     
     # 初始化各个界面（传入共享资源，如screen, font）
     # menu.init(screen, font)
-    s_gameplay = gameplay(screen, font, num_disks)   # 游戏界面初始化（创建柱子、盘子等）
+    s_gameplay = gameplay(screen, font, num_disks, num_towers)   # 游戏界面初始化（创建柱子、盘子等）
     # leaderboard.init(screen, font)
     # settings.init(screen, font)
     # about.init(screen, font)
