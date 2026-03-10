@@ -15,7 +15,7 @@ ABOUT = 4
 
 # 各种参数
 width, height = 1280, 720
-num_disks = 4       #盘子的数量
+num_disks = 2       #盘子的数量
 num_towers = 3       #柱子的数量
 start_time_flag = 0.0     #开始计时的标志参数
 
