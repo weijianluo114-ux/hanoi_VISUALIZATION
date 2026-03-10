@@ -62,7 +62,7 @@ class Tower:
             self.base_width,
             self.base_height
         )
-        pygame.draw.rect(screen, self.base_color, base_rect)
+        pygame.draw.rect(screen, self.base_color, base_rect, border_radius=5)   #圆角矩形
 
         # 绘制柱子杆（竖立矩形）
         pole_rect = pygame.Rect(

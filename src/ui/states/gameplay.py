@@ -1,5 +1,4 @@
 import pygame     #游戏包
-import sys  #用于退出系统
 
 # 导入自定义组件
 from ..components import tower_m
