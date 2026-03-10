@@ -10,8 +10,8 @@ class Disk:
         self.font = font  # 保存字体引用
 
     def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
-        pygame.draw.rect(screen, (0,0,0), self.rect, 2)   # 黑色边框
+        pygame.draw.rect(screen, self.color, self.rect, border_radius=3)
+        pygame.draw.rect(screen, (0,0,0), self.rect, 2, border_radius=3)   # 黑色边框
         
         # 使用外部传入的字体绘制序号
         text = self.font.render(str(self.size), True, (255, 255, 255))   # 序号字体颜色为白色

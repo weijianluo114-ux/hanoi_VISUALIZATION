@@ -2,7 +2,7 @@ import pygame
 
 class Tower:
     """简单的柱子类，只负责绘制"""
-    def __init__(self, x, y, pole_width, pole_height, base_width, base_height, max_disks, color=(176,196,222)):
+    def __init__(self, screen, x, y, pole_width, pole_height, base_width, base_height, max_disks, name, color=(176,196,222)):
         """
         :param x: 柱子底部中心点的 x 坐标
         :param y: 柱子底部（底座下沿）的 y 坐标
@@ -13,16 +13,19 @@ class Tower:
         :param color: 柱子杆的颜色，底座颜色可自行调整
         max_disks: 最多能放多少个盘子（用于计算盘子位置）
         """
+        self.screen_surface = screen
         self.x = x
         self.y = y
         self.pole_width = pole_width
         self.pole_height = pole_height
         self.base_width = base_width
         self.base_height = base_height
+        self.name = name
         self.color = color          # 柱子杆颜色
         self.base_color = (255,182,193)  # 底座颜色（棕色），可根据需要修改
         self.max_disks = max_disks
         self.disks = []      # 存储当前柱子上的盘子对象（列表作为栈）
+        self.font = pygame.font.SysFont('SimHei', 30)
 
     def add_disk(self, disk):
         """将盘子放到柱子顶部"""
@@ -79,6 +82,16 @@ class Tower:
         pole_top_radius = self.pole_width // 2      #半径
         pygame.draw.circle(screen, self.color, pole_top, pole_top_radius)
         
+        #绘制柱子的名字
+        if 0 <= self.name <= 25:
+            text_str = chr(ord('A') + self.name) + '柱'
+            text = self.font.render(text_str, True, (0, 0, 0))
+            text_rect = text.get_rect()  #获取文本框的矩形区
+            #设置文字的位置
+            text_rect.centerx = self.x - self.pole_width // 2
+            text_rect.centery = 120
+            self.screen_surface.blit(text, text_rect)
+    
         # 绘制盘子（可选：也可以由盘子自己绘制，但由 Tower 遍历调用更方便）
         for disk in self.disks:
             disk.draw(screen)

@@ -16,15 +16,17 @@ class gameplay(object):
         self.num_towers = num_towers
         self.width = screen.get_width()
         self.height = screen.get_height()
+        self.holding_disk_height = 180      #拿起的柱子的高度
+        self.start_ticks = 0.0
+        self.time_str = None
         
         
         # 柱子类(根据柱子的数量添加)
         self.towers = []
         for tower_x in range(self.num_towers):
             x_center = ((tower_x+1)*(self.width))/(self.num_towers+1)
-            tower = tower_m.Tower(x_center, 700, 20, 400, 240, 40, self.num_disks)
+            tower = tower_m.Tower(self.screen_surface, x_center, 700, 20, 400, 240, 40, self.num_disks, tower_x, )
             self.towers.append(tower)
-
 
         # 盘子类
         self.disks = []
@@ -58,7 +60,7 @@ class gameplay(object):
                         self.holding_disk = disk
                         # 拿起后立即将盘子显示在柱子上方（y=100）
                         tower_x = self.towers[self.selected_tower].x
-                        self.holding_disk.rect.center = (tower_x, 100)
+                        self.holding_disk.rect.center = (tower_x, self.holding_disk_height)
                         print(f"拿起了盘子 {disk.size}")
                     else:
                         print("柱子上没有盘子可拿")
@@ -71,21 +73,35 @@ class gameplay(object):
                         print("不能放在这里，规则不允许")
         return None
 
+    def time_accumulate(self, start_ticks):
+        # 计算已经过的秒数
+        elapsed_seconds = (pygame.time.get_ticks() - start_ticks) / 1000.0
+        # 格式化为小数点后两位
+        self.time_str = f"{elapsed_seconds:.2f}"
+        return elapsed_seconds
+        
+        
+        
 
     def draw(self):
-        
         self.screen_surface.fill((255,255,255))     #清屏
         for tower in self.towers:
             tower.draw(self.screen_surface)
-        # 绘制手中盘子和动画盘子...
-        for tower_m in self.towers:
-            tower_m.draw(self.screen_surface)
         
+        # 绘制手中盘子
         if self.holding_disk:
             # 获取当前选中柱子的中心x坐标
             tower_x = self.towers[self.selected_tower].x
             # 设置盘子的位置：x为柱子中心，y固定为100
-            self.holding_disk.rect.center = (tower_x, 100)
-            self.holding_disk.draw(self.screen_surface)
+            self.holding_disk.rect.center = (tower_x, self.holding_disk_height)
+            self.holding_disk.draw(self.screen_surface)     #绘制
+            
+        #绘制时间
+        # 渲染文本
+        time_text = self.game_font.render(self.time_str, True, (0, 0, 0))
+        # 绘制到屏幕
+        self.screen_surface.blit(time_text, (10, 10))
+        
+        
     
 

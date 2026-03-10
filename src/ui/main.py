@@ -17,8 +17,11 @@ ABOUT = 4
 width, height = 1280, 720
 num_disks = 4       #盘子的数量
 num_towers = 3       #柱子的数量
+start_time_flag = 0.0     #开始计时的标志参数
 
 def main():
+    global start_time_flag, start_ticks
+    
     pygame.init()   #初始化pygame
     screen = pygame.display.set_mode((width, height))   #屏幕类
     clock = pygame.time.Clock()     #时钟类
@@ -48,6 +51,9 @@ def main():
                 new_state = s_menu.handle_events(event, mouse_pos)
                 if new_state is not None:
                     current_state = new_state
+                if new_state == GAMEPLAY and start_time_flag == 0:
+                    start_time_flag = 1
+                    start_ticks = pygame.time.get_ticks()
             elif current_state == GAMEPLAY:
                 new_state = s_gameplay.handle_events(event)
                 if new_state is not None:
@@ -60,7 +66,9 @@ def main():
         if current_state == MENU:
             s_menu.draw()
         elif current_state == GAMEPLAY:
+            s_gameplay.time_accumulate(start_ticks)
             s_gameplay.draw()
+            
         # ...
         
         #设置帧率为60帧
