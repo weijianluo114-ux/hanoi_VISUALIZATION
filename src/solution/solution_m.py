@@ -17,11 +17,11 @@ class solution(object):
     def recursion(self, num_disk, origin, temp, target):
         if num_disk == 1:
             self.solution_dict.append((num_disk, origin, target))  #将解决过程移动到该列表中
-            print(f'盘子{num_disk}从柱子{origin}到柱子{target}')
+            # print(f'盘子{num_disk}从柱子{origin}到柱子{target}')
             return
         
         self.recursion(num_disk-1, origin, target, temp)     #将此时该柱子最底下的盘子的上面那个移动到目标柱
-        print(f'盘子{num_disk}从柱子{origin}到柱子{target}')             #将最底下那个盘子移动到临时柱子
+        # print(f'盘子{num_disk}从柱子{origin}到柱子{target}')             #将最底下那个盘子移动到临时柱子
         self.solution_dict.append((num_disk, origin, target))   #将解决过程移动到该列表中
         self.recursion(num_disk-1, temp, origin, target)     #将剩下的盘子移动到目标柱
 

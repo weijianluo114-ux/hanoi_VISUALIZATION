@@ -3,6 +3,7 @@ import pygame     #游戏包
 # 导入自定义组件
 from ..components import tower_m
 from ..components import disk_m
+from ...solution import solution_m
 
 class gameplay(object):
     """docstring for gameplay."""
@@ -18,7 +19,9 @@ class gameplay(object):
         self.height = screen.get_height()
         self.holding_disk_height = 180      #拿起的柱子的高度
         self.time_str = '0.00'      #需要显示的时间数
-        
+        self.implication_str = ''   #对应要显示的提示文字
+        self.solution1 = solution_m.solution()
+        self.solution_start = 0
         
         # 初始化所有柱子(根据柱子的数量添加)
         self.towers = []
@@ -39,12 +42,21 @@ class gameplay(object):
         for disk in self.disks:
             self.towers[0].add_disk(disk)
         
+        #用于存放查看提示的矩形
+        self.solution_rect = pygame.Rect(0, 0, 150, 50)     
+        self.solution_rect.center = (self.width-150, 50)
     
     def handle_events(self, event, mouse_pos):
         # 处理游戏中的键盘事件，按 ESC 返回菜单
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             return 0   # 返回主菜单状态 MENU
         # 原有的空格、数字键处理...
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:      #按下左键
+                if self.solution_rect.collidepoint(mouse_pos): #检测是否在第一个矩形中，如果是则开始解题
+                    self.solution_untie()
+                    self.solution_start = 1
+                    pass
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_1:     #选中第一根柱子
                 self.selected_tower = 0
@@ -53,25 +65,42 @@ class gameplay(object):
             elif event.key == pygame.K_3:   #选中第三根柱子
                 self.selected_tower = 2
             elif event.key == pygame.K_SPACE:
-                if self.holding_disk is None:
-                    # 尝试从当前选中柱子上拿起最上面的盘子
-                    disk = self.towers[self.selected_tower].remove_disk()
-                    if disk is not None:
-                        self.holding_disk = disk
-                        # 拿起后立即将盘子显示在柱子上方（y=100）
-                        tower_x = self.towers[self.selected_tower].x
-                        self.holding_disk.rect.center = (tower_x, self.holding_disk_height)
-                        print(f"拿起了盘子 {disk.size}")
-                    else:
-                        print("柱子上没有盘子可拿")
-                else:
-                    # 尝试将手中的盘子放到当前选中柱子上
-                    if self.towers[self.selected_tower].add_disk(self.holding_disk):
-                        print(f"移动盘子 {self.holding_disk.size} 到柱子 {self.selected_tower+1}")
-                        self.holding_disk = None
-                    else:
-                        print("无法放置")
+                self.move_disks()
         return self.win_detect()
+
+    #定义一个解包解题元组并执行相应操作的方法
+    def solution_untie(self):
+        self.solution1.recursion(self.num_disks, 0, 1, 2)
+        for disk_size, origin_tower, taget_tower in self.solution1.solution_dict:
+            self.selected_tower = origin_tower
+            self.move_disks()
+            self.selected_tower = taget_tower
+            self.move_disks()
+
+    #定义一个移动盘子的方法
+    def move_disks(self):
+        if self.holding_disk is None:
+            # 尝试从当前选中柱子上拿起最上面的盘子
+            disk = self.towers[self.selected_tower].remove_disk()
+            if disk is not None:
+                self.holding_disk = disk
+                # 拿起后立即将盘子显示在柱子上方（y=100）
+                tower_x = self.towers[self.selected_tower].x
+                self.holding_disk.rect.center = (tower_x, self.holding_disk_height)
+                print(f"拿起了盘子 {disk.size}")
+                self.implication_str = f"拿起了盘子 {disk.size}"
+            else:
+                print("柱子上没有盘子可拿")
+                self.implication_str = "柱子上没有盘子可拿"
+        else:
+            # 尝试将手中的盘子放到当前选中柱子上
+            if self.towers[self.selected_tower].add_disk(self.holding_disk):
+                print(f"移动盘子 {self.holding_disk.size} 到柱子 {self.selected_tower+1}")
+                self.implication_str = f"移动盘子 {self.holding_disk.size} 到柱子 {self.selected_tower+1}"
+                self.holding_disk = None
+            else:
+                print("无法放置")
+                self.implication_str = "无法放置"            
 
     #定义一个刷新盘子的方法
     def reset(self):
@@ -107,6 +136,7 @@ class gameplay(object):
     #绘制对应屏幕方法
     def draw(self):
         self.screen_surface.fill((255,255,255))     #清屏
+        #绘制柱子
         for tower in self.towers:
             tower.draw(self.screen_surface)
         
@@ -123,8 +153,25 @@ class gameplay(object):
         time_text = self.game_font.render(self.time_str, True, (0, 0, 0))
         # 绘制到屏幕
         self.screen_surface.blit(time_text, (10, 10))
-            
         
+        #绘制提示
+        font = pygame.font.SysFont('SimHei', 20)    #字体类
+        # 渲染文本
+        str = font.render(self.implication_str, True, (60, 40, 60))
+        str_rect = str.get_rect()
+        str_rect.center = (self.width/2, 50)
+        # 绘制到屏幕
+        self.screen_surface.blit(str, str_rect)
         
+        #绘制查看解题提示的矩形
+        pygame.draw.rect(self.screen_surface, (100, 150, 50), self.solution_rect, border_radius=2)
+        pygame.draw.rect(self.screen_surface, (0, 0, 0), self.solution_rect, 2, border_radius=2)     #边框
+        font = pygame.font.SysFont('SimHei', 20)    #字体类
+        # 渲染文本
+        str = font.render('查看步骤', True, (40, 40, 60))
+        str_rect = str.get_rect()
+        str_rect.center = self.solution_rect.center
+        # 绘制到屏幕
+        self.screen_surface.blit(str, str_rect)
     
 
