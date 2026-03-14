@@ -27,7 +27,7 @@ class gameplay(object):
         self.total_ticks = 0        #记录总程序运行时间
         self.first_ticks = first_ticks  #记录最初时的时间戳
         self.move_step = 0      #移动盘子时记录状态机的参数
-        self.solution_speed = 50   #解题速度设置，越小越快
+        self.solution_speed = 200   #解题速度设置，越小越快
         
         
         
@@ -67,6 +67,7 @@ class gameplay(object):
                         self.solution_start = 1
                         self.solution_total_step = self.solution1.get_classical_num(self.num_disks)
                         print(self.solution_total_step)
+                        self.solution1.clear_solution_dict()
                         self.solution1.recursion(self.num_disks, 0, 1, 2)   #获得答案
                         print(f'答案为：{self.solution1.solution_dict}')
         elif event.type == pygame.KEYDOWN:
@@ -82,7 +83,7 @@ class gameplay(object):
         return self.win_detect()
 
     #自动更新并执行
-    def update(self):
+    def solution_update(self):
         if self.solution_start:
             self.solution_untie()
 
@@ -111,6 +112,7 @@ class gameplay(object):
                     print(f'第{self.solution_step}步')
                     self.move_disks()
             elif self.solution_step == self.solution_total_step:    #结束解题
+                self.solution_step = 0      #将步骤也清0
                 self.solution_start = 0     #将参数置0
 
 
