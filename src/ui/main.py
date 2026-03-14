@@ -32,6 +32,10 @@ def main():
     font = pygame.font.SysFont('SimHei', 36)    #字体类
     pygame.display.set_caption("汉诺塔小游戏")  #设置窗口说明
     
+    # 初始化混音器
+    # 设置音频缓冲区大小为 4096 字节
+    pygame.mixer.init(buffer=4096)
+    
     # 初始化当前状态
     current_state = MENU
     
@@ -42,6 +46,20 @@ def main():
     # leaderboard.init(screen, font)
     # settings.init(screen, font)
     # about.init(screen, font)
+    
+    #插入音乐
+    sound = None
+    music = None
+    try:
+        # 尝试加载音频文件
+        sound = pygame.mixer.Sound(r"assets\真夜中的汉诺塔.mp3")
+        pygame.mixer.music.load(r"assets\真夜中的汉诺塔.mp3")
+        print("音频加载成功！")
+        sound.play()
+        pygame.mixer.music.play(loops=-1)  # 无限循环
+    except Exception as e:
+        # 如果加载失败，使用模拟的音频
+        print(f"无法加载音频文件：{e}")
     
     running = True
     while running:
