@@ -4,6 +4,7 @@ import pygame     #游戏包
 from ..components import tower_m
 from ..components import disk_m
 from ...solution import solution_m
+from ..components.get_graph import build_state_graph
 
 class gameplay(object):
     """docstring for gameplay."""
@@ -29,11 +30,16 @@ class gameplay(object):
         self.move_step = 0      #移动盘子时记录状态机的参数
         self.solution_speed = 50   #解题速度设置，越小越快
         
+        self.right_ratio = 3/5  #分屏比例
+        self.left_ratio = 1.0 - self.right_ratio
+        
+        self.disk_states = [0 for i in range(num_disks)]    #初始化所有盘子的状态，0表示第0个柱子，索引代表第几个盘子
+        
         # 初始化所有柱子(根据柱子的数量添加)
         self.towers = []
         for tower_x in range(self.num_towers):
-            x_center = ((tower_x+1)*(self.width))/(self.num_towers+1)
-            tower = tower_m.Tower(self.screen_surface, x_center, 700, 20, 400, 240, 40, self.num_disks, tower_x, )
+            x_center = ((tower_x+1)*(self.width*(self.right_ratio)))/(self.num_towers+1)
+            tower = tower_m.Tower(self.screen_surface, x_center, 900, 20, 400, 240, 40, self.num_disks, tower_x, )
             self.towers.append(tower)
 
         # 初始化所有盘子
@@ -51,6 +57,12 @@ class gameplay(object):
         #用于存放查看提示的矩形
         self.solution_rect = pygame.Rect(0, 0, 150, 50)     
         self.solution_rect.center = (self.width-150, 50)
+        
+        # 建立状态图
+        self.graph = build_state_graph(self.num_disks)
+        # ★ 同步初始状态
+        self.update_disk_states()
+        print(f"初始状态: {self.disk_states}")
     
     def handle_events(self, event, mouse_pos):
         #处理解题问题
@@ -78,6 +90,15 @@ class gameplay(object):
             elif event.key == pygame.K_SPACE:
                 self.move_disks()
         return 1
+
+    def update_disk_states(self):
+        """根据当前所有柱子上的盘子，更新 disk_states"""
+        # 重置为 -1（确保能看到未正确设置的情况）
+        self.disk_states = [-1] * self.num_disks
+        for tower_idx, tower in enumerate(self.towers):
+            for disk in tower.disks:
+                # disk.size 范围 [1, num_disks]，减1转为0-based索引
+                self.disk_states[disk.size - 1] = tower_idx
 
     #自动更新并执行
     def update(self):
@@ -135,6 +156,8 @@ class gameplay(object):
                 print(f"移动盘子 {self.holding_disk.size} 到柱子 {self.selected_tower+1}")
                 self.implication_str = f"移动盘子 {self.holding_disk.size} 到柱子 {self.selected_tower+1}"
                 self.holding_disk = None
+                # ★ 只有放下盘子后才更新状态
+                self.update_disk_states()
             else:
                 print("无法放置")
                 self.implication_str = "无法放置"            
@@ -157,6 +180,8 @@ class gameplay(object):
         # 将所有盘子加到第一根柱子（索引0）
         for disk in self.disks:
             self.towers[0].add_disk(disk)
+        # ★ 重置后同步
+        self.update_disk_states()
 
     #检测获胜方法
     def win_detect(self):

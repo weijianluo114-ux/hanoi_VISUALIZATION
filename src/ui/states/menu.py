@@ -11,7 +11,7 @@ class menu(object):
         self.font = pygame.font.SysFont('SimHei', 28)    #字体类
         self.width = screen.get_width()     #获取屏幕的宽和高
         self.height = screen.get_height()
-        self.image = pygame.image.load(r'assets\生成特定风格图片.bmp')
+        self.image = pygame.image.load(r'assets\16_9.png')
         self.text = ['开始', '排行榜', '设置', '关于']
         self.text_render = []
         self.select_rect = []

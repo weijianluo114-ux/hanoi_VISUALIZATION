@@ -16,7 +16,8 @@ ABOUT = 4
 WIN = 5
 
 # 各种参数
-width, height = 1280, 720
+width, height = 1920, 1080
+right_width= 640
 num_disks = 4       #盘子的数量
 num_towers = 3       #柱子的数量
 game_start = 1
@@ -48,18 +49,18 @@ def main():
     # about.init(screen, font)
     
     #插入音乐
-    sound = None
-    music = None
-    try:
-        # 尝试加载音频文件
-        sound = pygame.mixer.Sound(r"assets\真夜中的汉诺塔.mp3")
-        pygame.mixer.music.load(r"assets\真夜中的汉诺塔.mp3")
-        print("音频加载成功！")
-        sound.play()
-        pygame.mixer.music.play(loops=-1)  # 无限循环
-    except Exception as e:
-        # 如果加载失败，使用模拟的音频
-        print(f"无法加载音频文件：{e}")
+    # sound = None
+    # music = None
+    # try:
+    #     # 尝试加载音频文件
+    #     sound = pygame.mixer.Sound(r"assets\真夜中的汉诺塔.mp3")
+    #     pygame.mixer.music.load(r"assets\真夜中的汉诺塔.mp3")
+    #     print("音频加载成功！")
+    #     sound.play()
+    #     pygame.mixer.music.play(loops=-1)  # 无限循环
+    # except Exception as e:
+    #     # 如果加载失败，使用模拟的音频
+    #     print(f"无法加载音频文件：{e}")
     
     running = True
     while running:
