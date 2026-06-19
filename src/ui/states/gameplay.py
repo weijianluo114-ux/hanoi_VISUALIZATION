@@ -72,7 +72,7 @@ class gameplay(object):
         self.graph = build_state_graph(self.num_disks)
         # ★ 同步初始状态
         self.update_disk_states()
-        print(f"初始状态: {self.disk_states}")
+        # print(f"初始状态: {self.disk_states}")
     
     def handle_events(self, event, mouse_pos):
         #处理解题问题
