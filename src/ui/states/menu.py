@@ -1,66 +1,81 @@
-import pygame     #游戏包
+import pygame
 
 class menu(object):
-    """_summary_
-
-    Args:
-        object (_type_): _description_
-    """
     def __init__(self, screen):
         self.screen_surface = screen
-        self.font = pygame.font.SysFont('SimHei', 28)    #字体类
-        self.width = screen.get_width()     #获取屏幕的宽和高
+        self.font = pygame.font.SysFont('SimHei', 28)
+        self.width = screen.get_width()
         self.height = screen.get_height()
         self.image = pygame.image.load(r'assets\16_9.png')
+
         self.text = ['开始', '排行榜', '设置', '关于']
         self.text_render = []
-        self.select_rect = []
+        self.base_rects = []       # 基础矩形（未放大时）
         self.text_rect_list = []
 
-        for i in range(4):      #初始化菜单文字
-            self.text_render.append(self.font.render(self.text[i], True, (0,0,0)))
-            
-        # 初始化矩形参数
-        rect_temp = pygame.Rect(0, 0, 300, 70)
-        rect_temp.centerx = self.width/2
-        for y_num in range(4):
-            #生成外框矩形参数
-            y_bottom = self.height-100-y_num*100
-            rect_temp.centery = y_bottom
-            self.select_rect.append(rect_temp.copy())   #列表中的类是引用，需要创建一个新的对象
+        for i in range(4):
+            self.text_render.append(self.font.render(self.text[i], True, (0, 0, 0)))
 
-            # 生成文字参数
-            text_rect = self.text_render[-1-y_num].get_rect()
+        # 初始化矩形位置
+        rect_temp = pygame.Rect(0, 0, 300, 70)
+        rect_temp.centerx = self.width / 2
+        for y_num in range(4):
+            y_bottom = self.height - 100 - y_num * 100
+            rect_temp.centery = y_bottom
+            self.base_rects.append(rect_temp.copy())
+
+            text_rect = self.text_render[-1 - y_num].get_rect()
             text_rect.centerx = rect_temp.centerx
             text_rect.centery = y_bottom
             self.text_rect_list.append(text_rect)
-            
-        
-      
+
     def handle_events(self, event, mouse_pos):
-        # 处理菜单中的鼠标按下事件
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:     #按下左键
-                if self.select_rect[-1].collidepoint(mouse_pos): #检测是否在第一个矩形中
+            if event.button == 1:
+                if self.base_rects[-1].collidepoint(mouse_pos):
                     return 6
-            
         return None
 
-
     def draw(self):
-        #生成背景图片
-        self.screen_surface.blit(self.image, (0,0))
-        
+        self.screen_surface.blit(self.image, (0, 0))
+
+        mouse_pos = pygame.mouse.get_pos()
+        hover_index = None
+        for i, rect in enumerate(self.base_rects):
+            if rect.collidepoint(mouse_pos):
+                hover_index = i
+                break
+
         for y_num in range(4):
-            #生成矩形
-            pygame.draw.rect(self.screen_surface, (200, 100, 50), self.select_rect[y_num], border_radius = 10)
-            # print(self.select_rect)
-            pygame.draw.rect(self.screen_surface, (0, 0, 0), self.select_rect[y_num], 1, border_radius = 10)
-            
-            # 生成文字
-            self.screen_surface.blit(self.text_render[-1-y_num], self.text_rect_list[y_num])
-            
-        
-            
-        
-    
+            rect = self.base_rects[y_num]
+            is_hover = (y_num == hover_index)
+
+            if is_hover:
+                # 悬停：放大 + 变色
+                scale_w, scale_h = 340, 82
+                big_rect = pygame.Rect(0, 0, scale_w, scale_h)
+                big_rect.center = rect.center
+                color = (255, 160, 60)
+                border_color = (200, 100, 20)
+                shadow_offset = 6
+
+                # 阴影
+                shadow_rect = big_rect.copy()
+                shadow_rect.x += shadow_offset
+                shadow_rect.y += shadow_offset
+                pygame.draw.rect(self.screen_surface, (80, 40, 10, 60),
+                                 shadow_rect, border_radius=12)
+                # 主矩形
+                pygame.draw.rect(self.screen_surface, color, big_rect, border_radius=12)
+                pygame.draw.rect(self.screen_surface, border_color, big_rect, 3, border_radius=12)
+
+                # 文字居中于放大后的矩形
+                text_surf = self.text_render[-1 - y_num]
+                text_rect = text_surf.get_rect(center=big_rect.center)
+                self.screen_surface.blit(text_surf, text_rect)
+            else:
+                # 普通状态
+                base_color = (200, 100, 50)
+                pygame.draw.rect(self.screen_surface, base_color, rect, border_radius=10)
+                pygame.draw.rect(self.screen_surface, (0, 0, 0), rect, 1, border_radius=10)
+                self.screen_surface.blit(self.text_render[-1 - y_num], self.text_rect_list[y_num])

@@ -37,6 +37,7 @@ class gameplay(object):
         
         # 在 __init__ 末尾，建立状态图后面，添加：
         self.graph_initialized = False   # 标志：是否已构建布局
+        self.path_to_target = []   # 存储最短路径的状态序列，格式 [(0,0,0), ..., (2,2,2)]
         self.graph_surface = None        # 预渲染的状态图表面
         self.graph_positions = None      # 所有状态的位置字典
         self.graph_left = 0
@@ -122,6 +123,8 @@ class gameplay(object):
             for disk in tower.disks:
                 # disk.size 范围 [1, num_disks]，减1转为0-based索引
                 self.disk_states[disk.size - 1] = tower_idx
+        # 盘子放下后，自动计算到目标的最短路径
+        self.find_shortest_path_bfs()
 
     #自动更新并执行
     def update(self):
@@ -336,8 +339,9 @@ class gameplay(object):
         # 绘制所有节点圆和文字
         # node_radius = 16
         # font_size = 13
-        node_radius = min((max(10, int(128 / (2 ** (n - 1))))),(64))
-        font_size = min((max(6, int(96 / (2 ** (n - 1))))),(48))   # 字号同步缩小
+        
+        node_radius = min((max(8, int(128 / (2 ** (n - 1))))),(50))
+        font_size = min((max(6, int(96 / (2 ** (n - 1))))),(38))   # 字号同步缩小
         font = pygame.font.SysFont('SimHei', font_size)
         for state, pos in self.graph_positions.items():
             # 画圆
@@ -362,7 +366,7 @@ class gameplay(object):
             pos = self.graph_positions[current_state]
             screen_x = int(pos[0] + self.graph_left)
             screen_y = int(pos[1] + self.graph_top)
-            r = self.graph_node_radius + 6
+            r = self.graph_node_radius + 3
             # 红色高亮圆圈
             pygame.draw.circle(self.screen_surface, (255, 50, 50), (screen_x, screen_y), r)
             pygame.draw.circle(self.screen_surface, (255, 0, 0), (screen_x, screen_y), r - 2)
@@ -374,6 +378,64 @@ class gameplay(object):
             text_rect = text_surf.get_rect(center=(screen_x, screen_y))
             self.screen_surface.blit(text_surf, text_rect)
 
+    def draw_shortest_path(self):
+        """在状态图上用黄色高亮最短路径的边和节点"""
+        if not self.path_to_target or len(self.path_to_target) < 2:
+            return
+
+        # --- 绘制黄色连线 ---
+        for i in range(len(self.path_to_target) - 1):
+            p1 = self.graph_positions[self.path_to_target[i]]
+            p2 = self.graph_positions[self.path_to_target[i + 1]]
+            screen_p1 = (int(p1[0] + self.graph_left), int(p1[1] + self.graph_top))
+            screen_p2 = (int(p2[0] + self.graph_left), int(p2[1] + self.graph_top))
+            pygame.draw.line(self.screen_surface, (255, 235, 120), screen_p1, screen_p2, 5)
+
+        # --- 绘制黄色节点圆 + 文字（只画一次！）---
+        label_font = pygame.font.SysFont('SimHei', max(8, self.graph_node_radius - 2))
+        for i, state in enumerate(self.path_to_target):
+            if i == 0:      # 起点保留红色高亮
+                continue
+            pos = self.graph_positions[state]
+            screen_x = int(pos[0] + self.graph_left)
+            screen_y = int(pos[1] + self.graph_top)
+            r = self.graph_node_radius + 2
+
+            # 浅黄圆
+            pygame.draw.circle(self.screen_surface, (255, 230, 100), (screen_x, screen_y), r)
+            pygame.draw.circle(self.screen_surface, (255, 245, 180), (screen_x, screen_y), r - 2)
+
+            # 文字用深色，在浅黄底上才看得清
+            text_str = ''.join(str(d) for d in state)
+            text_surf = label_font.render(text_str, True, (60, 60, 60))
+            text_rect = text_surf.get_rect(center=(screen_x, screen_y))
+            self.screen_surface.blit(text_surf, text_rect)
+
+    def find_shortest_path_bfs(self):
+        """BFS 查找当前 disk_states 到目标 (全在2号柱) 的最短路径"""
+        target = tuple([2] * self.num_disks)
+        start = tuple(self.disk_states)
+
+        if start == target:
+            self.path_to_target = [start]
+            return
+
+        visited = {start}
+        queue = [(start, [start])]          # (当前状态, 到该状态的路径)
+
+        while queue:
+            current, path = queue.pop(0)
+            for neighbor in self.graph[current]:   # 遍历所有可达邻居
+                if neighbor == target:
+                    self.path_to_target = path + [neighbor]
+                    return
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+        # 理论上汉诺塔图是连通的，不会走到这里
+        self.path_to_target = []
+    
     #绘制对应屏幕方法
     def draw(self):
         self.screen_surface.fill((255,255,255))     #清屏
@@ -387,6 +449,7 @@ class gameplay(object):
         # ★ 绘制右侧状态图
         if self.graph_surface:
             self.screen_surface.blit(self.graph_surface, (self.graph_left, self.graph_top))
+            self.draw_shortest_path()              # ← 先画路径（在底层）
             self.draw_current_state_on_graph()
 
         #绘制时间
