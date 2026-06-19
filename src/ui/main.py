@@ -2,7 +2,9 @@ import pygame
 import sys
 
 # 从状态文件中调取不同界面状态
-from .states import leaderboard, settings, about
+from .states.leaderboard import leaderboard
+from .states.settings import settings
+from .states.about import about
 from .states.gameplay import gameplay
 from .states.menu import menu
 from .states.win import win
@@ -18,7 +20,7 @@ WIN = 5
 SELECT_DISKS = 6     # 选择盘子数量界面
 
 # 各种参数
-width, height = 1600, 900
+width, height = 1920, 1080
 right_width= 640
 num_disks = 3       #盘子的数量
 num_towers = 3       #柱子的数量
@@ -48,9 +50,9 @@ def main():
     s_select = select_disks(screen)                              # 选择盘子的界面
     s_gameplay = gameplay(screen, font, num_disks, num_towers, first_ticks)   # 游戏界面初始化（创建柱子、盘子等）
     s_win = win(screen)
-    # leaderboard.init(screen, font)
-    # settings.init(screen, font)
-    # about.init(screen, font)
+    s_settings = settings(screen, font)          # 新增
+    s_leaderboard = leaderboard(screen, font)    # 新增
+    s_about = about(screen, font)                # 新增
     
     #插入音乐
     # sound = None
@@ -100,7 +102,19 @@ def main():
                     num_disks = s_select.selected_number       # ← 从属性读取
                     s_gameplay = gameplay(screen, font, num_disks, num_towers, first_ticks)
                     current_state = GAMEPLAY
-            # 其他状态类似...
+            elif current_state == SETTINGS:
+                new_state = s_settings.handle_events(event, mouse_pos)
+                if new_state is not None:
+                    current_state = new_state
+            elif current_state == LEADERBOARD:
+                new_state = s_leaderboard.handle_events(event, mouse_pos)
+                if new_state is not None:
+                    current_state = new_state
+            elif current_state == ABOUT:
+                new_state = s_about.handle_events(event, mouse_pos)
+                if new_state is not None:
+                    current_state = new_state
+
         
         # 更新逻辑（如果需要，例如动画）
         if current_state == MENU:
@@ -135,6 +149,12 @@ def main():
             s_win.draw()
         elif current_state == SELECT_DISKS:
             s_select.draw()
+        elif current_state == SETTINGS:
+            s_settings.draw()
+        elif current_state == LEADERBOARD:
+            s_leaderboard.draw()
+        elif current_state == ABOUT:
+            s_about.draw()
         
         # print(current_state)
         

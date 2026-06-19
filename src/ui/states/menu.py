@@ -30,10 +30,16 @@ class menu(object):
             self.text_rect_list.append(text_rect)
 
     def handle_events(self, event, mouse_pos):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                if self.base_rects[-1].collidepoint(mouse_pos):
-                    return 6
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # base_rects[3]=开始(顶), [2]=排行榜, [1]=设置, [0]=关于(底)
+            if self.base_rects[3].collidepoint(mouse_pos):
+                return 6          # 选择盘子数量
+            elif self.base_rects[2].collidepoint(mouse_pos):
+                return 2          # LEADERBOARD
+            elif self.base_rects[1].collidepoint(mouse_pos):
+                return 3          # SETTINGS
+            elif self.base_rects[0].collidepoint(mouse_pos):
+                return 4          # ABOUT
         return None
 
     def draw(self):
