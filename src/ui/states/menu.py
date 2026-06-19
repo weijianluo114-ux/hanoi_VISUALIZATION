@@ -42,7 +42,7 @@ class menu(object):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:     #按下左键
                 if self.select_rect[-1].collidepoint(mouse_pos): #检测是否在第一个矩形中
-                    return 1
+                    return 6
             
         return None
 

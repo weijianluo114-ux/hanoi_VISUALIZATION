@@ -28,12 +28,21 @@ class gameplay(object):
         self.total_ticks = 0        #记录总程序运行时间
         self.first_ticks = first_ticks  #记录最初时的时间戳
         self.move_step = 0      #移动盘子时记录状态机的参数
-        self.solution_speed = 50   #解题速度设置，越小越快
+        self.solution_speed = 250   #解题速度设置，越小越快
         
         self.right_ratio = 3/5  #分屏比例
         self.left_ratio = 1.0 - self.right_ratio
         
         self.disk_states = [0 for i in range(num_disks)]    #初始化所有盘子的状态，0表示第0个柱子，索引代表第几个盘子
+        
+        # 在 __init__ 末尾，建立状态图后面，添加：
+        self.graph_initialized = False   # 标志：是否已构建布局
+        self.graph_surface = None        # 预渲染的状态图表面
+        self.graph_positions = None      # 所有状态的位置字典
+        self.graph_left = 0
+        self.graph_top = 0
+        
+        self.pending_victory = False   # 胜利延迟一帧标志
         
         # 初始化所有柱子(根据柱子的数量添加)
         self.towers = []
@@ -68,15 +77,29 @@ class gameplay(object):
         #处理解题问题
         # 处理游戏中的键盘事件，按 ESC 返回菜单
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            # ★ 重置所有状态
+            self.reset()
+            self.solution_start = 0
+            self.solution_step = 0
+            self.move_step = 0
+            self.holding_disk = None
+            self.implication_str = ''
             return 0   # 返回主菜单状态 MENU
         # 原有的空格、数字键处理...
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:      #按下左键
                 if self.solution_rect.collidepoint(mouse_pos): #检测是否在第一个矩形中，如果是则开始解题
                     if self.solution_start == 0:
+                        # ★ 重置游戏到初始状态
+                        self.reset()
+                        # ★ 重置解题相关参数
+                        self.solution_step = 0
+                        self.move_step = 0
                         self.solution_start = 1
                         self.solution_total_step = self.solution1.get_classical_num(self.num_disks)
                         print(self.solution_total_step)
+                        # ★ 重置计时器，让第一步立即执行
+                        self.first_ticks = self.total_ticks - self.solution_speed
                         self.solution1.clear_solution_dict()
                         self.solution1.recursion(self.num_disks, 0, 1, 2)   #获得答案
                         print(f'答案为：{self.solution1.solution_dict}')
@@ -133,6 +156,7 @@ class gameplay(object):
             elif self.solution_step == self.solution_total_step:    #结束解题
                 self.solution_step = 0      #将步骤也清0
                 self.solution_start = 0     #将参数置0
+                self.move_step = 0          # ★ 复位移动状态机
 
 
     #定义一个移动盘子的方法
@@ -182,13 +206,22 @@ class gameplay(object):
             self.towers[0].add_disk(disk)
         # ★ 重置后同步
         self.update_disk_states()
+        
+        # ★ 只在第一次进入 GAMEPLAY 时构建状态图
+        if not self.graph_initialized:
+            self.build_graph_layout()
+            self.graph_initialized = True
 
-    #检测获胜方法
     def win_detect(self):
         last_tower = self.towers[-1]
         if len(last_tower.disks) == self.num_disks:
-            return 5
-        return 1    #1为游玩态
+            if not self.pending_victory:
+                # 第一次检测到全部归位 → 标记但不判定，确保这一帧先 draw
+                self.pending_victory = True
+                return 1    # 依然返回游玩态
+            return 5        # 下一帧才真正判定胜利
+        self.pending_victory = False
+        return 1            # 1为游玩态
         
     #时间累计方法
     def time_accumulate(self, start_ticks):
@@ -205,6 +238,142 @@ class gameplay(object):
         else:
             return '0.00'
 
+    def compute_sierpinski_position(self, state, corners, level, prev_disk=None):
+        """
+        递归计算汉诺塔状态在谢尔宾斯基三角形中的唯一位置
+        state: tuple, (d0, d1, ..., d_{n-1})，d0是最小盘子
+        corners: (left, right, top) — left=tower0, right=tower2, top=tower1
+        level: 还有多少层需要细分（从 n 递减到 0）
+        flip: 是否在本次递归中先进行水平翻转（偶数层递归为 True）
+        prev_disk: 上一层的 disk 值，决定了翻转轴通过哪个顶点
+        """
+        left, right, top = corners
+
+        if level == 0:
+            # 所有盘子都处理完，返回当前子三角形的重心
+            return ((left[0] + right[0] + top[0]) / 3.0,
+                    (left[1] + right[1] + top[1]) / 3.0)
+
+        # ── 偶数层递归：先水平翻转整个三角形 ──
+        if prev_disk is not None:
+            # 以"进入的子三角形的顶点"与"中心"的连线为轴进行水平翻转，
+            # 等价于交换除 prev_disk 对应顶点外的另外两个顶点
+            if prev_disk == 0:          # 轴通过左顶点 → 交换右顶点和上顶点
+                right, top = top, right
+            elif prev_disk == 1:        # 轴通过上顶点 → 交换左顶点和右顶点
+                left, right = right, left
+            else:                       # 轴通过右顶点 → 交换左顶点和上顶点
+                left, top = top, left
+
+        # state[-1] 是当前层要处理的盘子（从大到小）
+        disk = state[-1]
+
+        # 三条边的中点
+        mid_bottom = ((left[0] + right[0]) / 2.0, (left[1] + right[1]) / 2.0)
+        mid_left   = ((left[0] + top[0]) / 2.0,   (left[1] + top[1]) / 2.0)
+        mid_right  = ((right[0] + top[0]) / 2.0,  (right[1] + top[1]) / 2.0)
+
+        if disk == 0:   # 左下子三角形
+            new_corners = (left, mid_bottom, mid_left)
+        elif disk == 1: # 顶部子三角形
+            new_corners = (mid_left, mid_right, top)
+        else:           # 右下子三角形
+            new_corners = (mid_bottom, right, mid_right)
+
+        # 递归：flip 取反，并传递当前 disk 作为下一层的 prev_disk
+        return self.compute_sierpinski_position(
+            state[:-1], new_corners, level - 1, disk
+        )
+    
+    def build_graph_layout(self):
+        """构建状态图布局并预渲染到表面（仅调用一次）"""
+        n = self.num_disks
+
+        # 右侧绘制区域
+        graph_left = int(self.width * self.right_ratio)
+        graph_right = self.width
+        graph_top = 0
+        graph_bottom = self.height
+        graph_width = graph_right - graph_left
+        graph_height = graph_bottom - graph_top
+
+        # 正立三角形的三个顶点
+        margin = 0
+        cx = graph_width / 2
+        cy = graph_height / 2
+        tri_radius = min(graph_width, graph_height) / 2 - margin
+
+        # left=tower0(左下), right=tower2(右下), top=tower1(顶部)
+        left = (cx - tri_radius * 0.866, cy + tri_radius * 0.5)
+        right = (cx + tri_radius * 0.866, cy + tri_radius * 0.5)
+        top = (cx, cy - tri_radius)
+
+        corners = (left, right, top)
+
+        # 计算所有状态的位置
+        all_states = list(self.graph.keys())
+        self.graph_positions = {}
+        for state in all_states:
+            self.graph_positions[state] = self.compute_sierpinski_position(state, corners, n)
+
+        # 创建表面并预绘制
+        self.graph_surface = pygame.Surface((graph_width, graph_height), pygame.SRCALPHA)
+        self.graph_surface.fill((245, 245, 245))
+
+        # 绘制所有边（无向图，state < neighbor 避免重复）
+        for state, neighbors in self.graph.items():
+            p1 = self.graph_positions[state]
+            for neighbor in neighbors:
+                if state < neighbor:  # 每条边只画一次
+                    p2 = self.graph_positions[neighbor]
+                    pygame.draw.line(self.graph_surface, (180, 180, 180), p1, p2, 2)
+
+        # ★ 调试：打印所有状态及其坐标
+        # print(f"=== 共 {len(all_states)} 个状态 ===")
+        # for state, pos in sorted(self.graph_positions.items()):
+        #     print(f"状态 {''.join(str(d) for d in state)} → ({pos[0]:.2f}, {pos[1]:.2f})")
+
+        # 绘制所有节点圆和文字
+        # node_radius = 16
+        # font_size = 13
+        node_radius = min((max(10, int(128 / (2 ** (n - 1))))),(64))
+        font_size = min((max(6, int(96 / (2 ** (n - 1))))),(48))   # 字号同步缩小
+        font = pygame.font.SysFont('SimHei', font_size)
+        for state, pos in self.graph_positions.items():
+            # 画圆
+            pygame.draw.circle(self.graph_surface, (100, 130, 200),
+                            (int(pos[0]), int(pos[1])), node_radius)
+            # 绘制状态文字（如 "000"、"210"）
+            text_str = ''.join(str(d) for d in state)
+            text_surf = font.render(text_str, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=(int(pos[0]), int(pos[1])))
+            self.graph_surface.blit(text_surf, text_rect)
+
+        self.graph_left = graph_left
+        self.graph_top = graph_top
+        self.graph_node_radius = node_radius
+        print(f"状态图已生成，共 {len(all_states)} 个状态")
+
+
+    def draw_current_state_on_graph(self):
+        """在状态图上高亮当前盘子的状态"""
+        current_state = tuple(self.disk_states)
+        if current_state in self.graph_positions:
+            pos = self.graph_positions[current_state]
+            screen_x = int(pos[0] + self.graph_left)
+            screen_y = int(pos[1] + self.graph_top)
+            r = self.graph_node_radius + 6
+            # 红色高亮圆圈
+            pygame.draw.circle(self.screen_surface, (255, 50, 50), (screen_x, screen_y), r)
+            pygame.draw.circle(self.screen_surface, (255, 0, 0), (screen_x, screen_y), r - 2)
+            # ★ 高亮文字字体随 node_radius 动态变化（比普通节点文字大 2 号）
+            highlight_font_size = max(8, self.graph_node_radius - 2)
+            font = pygame.font.SysFont('SimHei', highlight_font_size)
+            text_str = ''.join(str(d) for d in current_state)
+            text_surf = font.render(text_str, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=(screen_x, screen_y))
+            self.screen_surface.blit(text_surf, text_rect)
+
     #绘制对应屏幕方法
     def draw(self):
         self.screen_surface.fill((255,255,255))     #清屏
@@ -214,6 +383,11 @@ class gameplay(object):
         
         # # 绘制手中盘子
         self.draw_holding_disk()
+
+        # ★ 绘制右侧状态图
+        if self.graph_surface:
+            self.screen_surface.blit(self.graph_surface, (self.graph_left, self.graph_top))
+            self.draw_current_state_on_graph()
 
         #绘制时间
         # 渲染文本

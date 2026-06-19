@@ -6,6 +6,7 @@ from .states import leaderboard, settings, about
 from .states.gameplay import gameplay
 from .states.menu import menu
 from .states.win import win
+from .states.select_disks import select_disks   # ← 新增
 
 # 游戏状态常量
 MENU = 0
@@ -14,18 +15,20 @@ LEADERBOARD = 2
 SETTINGS = 3
 ABOUT = 4
 WIN = 5
+SELECT_DISKS = 6     # 选择盘子数量界面
 
 # 各种参数
-width, height = 1920, 1080
+width, height = 1600, 900
 right_width= 640
-num_disks = 4       #盘子的数量
+num_disks = 3       #盘子的数量
 num_towers = 3       #柱子的数量
 game_start = 1
 start_ticks = 0
 first_ticks = pygame.time.get_ticks()
+s_gameplay = None        # 移到全局，方便重新初始化
 
 def main():
-    global start_ticks, win_time, game_start
+    global start_ticks, win_time, num_disks, game_start, s_gameplay
     
     pygame.init()   #初始化pygame
     screen = pygame.display.set_mode((width, height))   #屏幕类
@@ -42,6 +45,7 @@ def main():
     
     # 初始化各个界面（传入共享资源，如screen, font）
     s_menu = menu(screen)
+    s_select = select_disks(screen)                              # 选择盘子的界面
     s_gameplay = gameplay(screen, font, num_disks, num_towers, first_ticks)   # 游戏界面初始化（创建柱子、盘子等）
     s_win = win(screen)
     # leaderboard.init(screen, font)
@@ -87,6 +91,15 @@ def main():
                 new_state = s_win.handle_events(event, mouse_pos)
                 if new_state is not None:
                     current_state = new_state
+            # 在事件循环中，elif current_state == WIN: 之后添加：
+            elif current_state == SELECT_DISKS:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    current_state = MENU
+                    s_select.selected_number = None   # 重置
+                elif s_select.handle_events(event, mouse_pos):
+                    num_disks = s_select.selected_number       # ← 从属性读取
+                    s_gameplay = gameplay(screen, font, num_disks, num_towers, first_ticks)
+                    current_state = GAMEPLAY
             # 其他状态类似...
         
         # 更新逻辑（如果需要，例如动画）
@@ -106,7 +119,13 @@ def main():
             s_win.time_str = s_gameplay.time_accumulate(start_ticks)
         elif current_state == WIN:
             game_start = 1  #处于其它状态时，随时准备游戏
-            
+        # 在更新逻辑中，elif current_state == WIN: 之前或之后添加：
+        elif current_state == SELECT_DISKS:
+            s_select.update(mouse_pos)
+            # 允许按 ESC 返回菜单
+        
+        
+        
         # 绘制
         if current_state == MENU:
             s_menu.draw()
@@ -114,6 +133,8 @@ def main():
             s_gameplay.draw()
         elif current_state == WIN:
             s_win.draw()
+        elif current_state == SELECT_DISKS:
+            s_select.draw()
         
         # print(current_state)
         

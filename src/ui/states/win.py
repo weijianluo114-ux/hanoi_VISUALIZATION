@@ -53,7 +53,8 @@ class win(object):
 
 
     def draw(self):
-        self.screen_surface.fill((255,255,255))     #清屏
+        # self.screen_surface.fill((255,255,255))     #清屏
+        
         # 渲染文本
         win_str = f'你过关！时间:{self.time_str}s!'
         win_text = self.font.render(win_str, True, (0, 0, 0))
