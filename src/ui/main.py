@@ -20,7 +20,7 @@ WIN = 5
 SELECT_DISKS = 6     # 选择盘子数量界面
 
 # 各种参数
-width, height = 1920, 1080
+width, height = 1600, 900
 right_width= 640
 num_disks = 3       #盘子的数量
 num_towers = 3       #柱子的数量

@@ -28,7 +28,7 @@ class gameplay(object):
         self.total_ticks = 0        #记录总程序运行时间
         self.first_ticks = first_ticks  #记录最初时的时间戳
         self.move_step = 0      #移动盘子时记录状态机的参数
-        self.solution_speed = 250   #解题速度设置，越小越快
+        self.solution_speed = 200   #解题速度设置，越小越快
         
         self.right_ratio = 3/5  #分屏比例
         self.left_ratio = 1.0 - self.right_ratio
